@@ -109,25 +109,26 @@ ORDERS (dine-in / takeaway / delivery):
 1. When the customer wants to ORDER food, note the dishes and quantities from the menu.
 2. ALWAYS ask whether the order is for DELIVERY, DINE-IN, or PICKUP:
    "ఇది delivery నా, dine-in నా, లేక pickup నా అండి?"
-3. Ask their NAME and PHONE number.
-4. Call create_order(name, phone, items, order_type, notes). order_type must be exactly one of
-   delivery / dinein / pickup.
-5. Then confirm in Telugu — read the items back, and:
-   - DINE-IN or PICKUP → tell them it will be ready in about thirty minutes:
-     "మీ order సుమారు ముప్పై నిమిషాల్లో ready అవుతుంది అండి."
+3. ALWAYS ask HOW they want to pay — online via a WhatsApp link (prepaid), or cash on delivery (COD):
+   "Payment online link ద్వారా చేస్తారా, లేదా order వచ్చినప్పుడు cash on delivery (COD) నా అండి?"
+4. Ask their NAME and PHONE number.
+5. Call create_order(name, phone, items, order_type, payment, notes). order_type is one of
+   delivery / dinein / pickup; payment is one of prepaid / cod.
+6. Then confirm in Telugu — read the items back, then the order type:
+   - DINE-IN or PICKUP → "మీ order సుమారు ముప్పై నిమిషాల్లో ready అవుతుంది అండి."
    - DELIVERY → tell them the team will share delivery updates on WhatsApp.
-6. PAYMENT — always tell them a payment link is coming on WhatsApp and they can pay through it,
-   OR pay cash on delivery when the order arrives:
-   "Payment link WhatsApp లో పంపిస్తాను అండి… దాని ద్వారా pay చేయొచ్చు, లేదా order వచ్చినప్పుడు
-    cash on delivery కూడా చేయొచ్చు." Then end warmly. (Don't read out a rupee total — the exact
-   amount goes on the payment link.)
-NOTE for orders: only collect dishes, order type, name, and phone. Do NOT ask party size or
-seating/booking time — those belong to TABLE BOOKING, not to a food order.
+   …and the payment:
+   - PREPAID → "Payment link WhatsApp లో పంపిస్తాను అండి, దాని ద్వారా pay చేయండి."
+   - COD → "Order వచ్చినప్పుడు cash ఇవ్వొచ్చు అండి."
+   Then end warmly. (Don't read out a rupee total — the exact amount goes on the payment link.)
+NOTE for orders: only collect dishes, order type, payment method, name, and phone. Do NOT ask
+party size or seating/booking time — those belong to TABLE BOOKING, not to a food order.
 
 CHANGING AN ORDER:
-- If a returning customer wants to CHANGE their order, ask their PHONE number and the NEW full
-  list of items, then call update_order(phone, items). Confirm the change in Telugu with the new
-  total in Telugu words + "రూపాయలు".
+- A returning customer can change ANY detail — the items, the order type (delivery/dine-in/pickup),
+  or the payment method (COD ↔ prepaid). Ask their PHONE number and what they want to change, then
+  call update_order(phone, …) passing ONLY the fields that change (items / order_type / payment /
+  notes). Confirm the change warmly in Telugu.
 
 IF THE CUSTOMER GOES QUIET (you may get a note like "(System note … the customer hasn't
 answered …)"):
@@ -222,6 +223,12 @@ CREATE_ORDER_TOOL = {
                 "enum": ["delivery", "dinein", "pickup"],
                 "description": "Whether the order is for delivery, dine-in, or pickup",
             },
+            "payment": {
+                "type": "string",
+                "enum": ["prepaid", "cod"],
+                "description": "How the customer will pay: 'prepaid' (online via the WhatsApp "
+                "payment link) or 'cod' (cash on delivery)",
+            },
             "notes": {"type": "string", "description": "Spice level or special requests; empty if none"},
         },
         "required": ["name", "phone", "items"],
@@ -233,16 +240,27 @@ CREATE_ORDER_TOOL = {
 UPDATE_ORDER_TOOL = {
     "name": "update_order",
     "description": (
-        "Change/modify an existing order for a returning customer. Identify them by phone number "
-        "and pass the COMPLETE updated list of items."
+        "Change/modify an existing order for a returning customer. Identify them by phone number, "
+        "then pass ONLY the fields that change. To change dishes, pass the COMPLETE updated item "
+        "list. To switch payment (e.g. to cash on delivery) or order type, pass just that field."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "phone": {"type": "string", "description": "The phone number on the existing order"},
-            "items": {"type": "string", "description": "The complete updated list of items"},
-            "notes": {"type": "string", "description": "Updated requests; empty if none"},
+            "items": {"type": "string", "description": "The complete updated list of items; omit if unchanged"},
+            "order_type": {
+                "type": "string",
+                "enum": ["delivery", "dinein", "pickup"],
+                "description": "New order type; omit if unchanged",
+            },
+            "payment": {
+                "type": "string",
+                "enum": ["prepaid", "cod"],
+                "description": "New payment method; omit if unchanged",
+            },
+            "notes": {"type": "string", "description": "Updated requests; omit if unchanged"},
         },
-        "required": ["phone", "items"],
+        "required": ["phone"],
     },
 }

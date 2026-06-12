@@ -141,7 +141,10 @@ async def api_turn(
         return captured["order"]
 
     async def on_update_order(args):
-        row = db.update_latest_order(args.get("phone", ""), args.get("items", ""), args.get("notes"))
+        row = db.update_latest_order(
+            args.get("phone", ""), args.get("items"), args.get("notes"),
+            args.get("order_type"), args.get("payment"),
+        )
         if row:
             captured["order"] = row
         return row
@@ -215,7 +218,10 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
         return row
 
     async def on_update_order(args: dict):
-        row = db.update_latest_order(args.get("phone", ""), args.get("items", ""), args.get("notes"))
+        row = db.update_latest_order(
+            args.get("phone", ""), args.get("items"), args.get("notes"),
+            args.get("order_type"), args.get("payment"),
+        )
         if row:
             await _send(ws, {"type": "order_created", "order": row})
             db.log_turn(sid, "tool", "order_update " + json.dumps(args, ensure_ascii=False))

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS orders (
   phone       TEXT    NOT NULL,
   items       TEXT    NOT NULL,
   order_type  TEXT    DEFAULT '',           -- delivery | dinein | pickup
+  payment     TEXT    DEFAULT '',           -- prepaid | cod
   notes       TEXT    DEFAULT '',
   status      TEXT    DEFAULT 'received',   -- received | changed | confirmed
   created_at  TEXT    DEFAULT (datetime('now','localtime'))
@@ -79,10 +80,12 @@ def init_db() -> None:
         with _lock:
             conn = _connect()
             conn.executescript(SCHEMA)
-            # migrate older DBs created before the order_type column existed
+            # migrate older DBs created before the order_type / payment columns existed
             cols = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
             if "order_type" not in cols:
                 conn.execute("ALTER TABLE orders ADD COLUMN order_type TEXT DEFAULT ''")
+            if "payment" not in cols:
+                conn.execute("ALTER TABLE orders ADD COLUMN payment TEXT DEFAULT ''")
             conn.commit()
     except Exception:
         pass
@@ -171,12 +174,14 @@ def insert_order(o: dict) -> dict:
     with _lock:
         conn = _connect()
         cur = conn.execute(
-            "INSERT INTO orders (name, phone, items, order_type, notes, status) VALUES (?,?,?,?,?,?)",
+            "INSERT INTO orders (name, phone, items, order_type, payment, notes, status) "
+            "VALUES (?,?,?,?,?,?,?)",
             (
                 str(o.get("name", "")).strip(),
                 str(o.get("phone", "")).strip(),
                 str(o.get("items", "")).strip(),
                 str(o.get("order_type", "") or "").strip().lower(),
+                str(o.get("payment", "") or "").strip().lower(),
                 str(o.get("notes", "") or "").strip(),
                 str(o.get("status", "received")).strip(),
             ),
@@ -195,8 +200,15 @@ def recent_orders(limit: int = 50) -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def update_latest_order(phone: str, items: str, notes: str | None = None) -> dict | None:
-    """Update the most recent order for a phone number; returns the updated row or None."""
+def update_latest_order(
+    phone: str,
+    items: str | None = None,
+    notes: str | None = None,
+    order_type: str | None = None,
+    payment: str | None = None,
+) -> dict | None:
+    """Update the most recent order for a phone number, changing only the fields passed
+    (items / notes / order_type / payment). Returns the updated row or None if not found."""
     with _lock:
         conn = _connect()
         row = conn.execute(
@@ -204,10 +216,13 @@ def update_latest_order(phone: str, items: str, notes: str | None = None) -> dic
         ).fetchone()
         if not row:
             return None
+        new_items = row["items"] if items in (None, "") else str(items).strip()
         new_notes = row["notes"] if notes is None else str(notes).strip()
+        new_type = row["order_type"] if order_type in (None, "") else str(order_type).strip().lower()
+        new_pay = row["payment"] if payment in (None, "") else str(payment).strip().lower()
         conn.execute(
-            "UPDATE orders SET items=?, notes=?, status='changed' WHERE id=?",
-            (str(items).strip(), new_notes, row["id"]),
+            "UPDATE orders SET items=?, notes=?, order_type=?, payment=?, status='changed' WHERE id=?",
+            (new_items, new_notes, new_type, new_pay, row["id"]),
         )
         conn.commit()
         return dict(conn.execute("SELECT * FROM orders WHERE id=?", (row["id"],)).fetchone())

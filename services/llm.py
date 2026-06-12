@@ -60,7 +60,7 @@ _REQUIRED_BY_TOOL = {
     "create_booking": ("name", "phone", "party_size", "date", "time"),
     "log_complaint": ("name", "phone", "issue"),
     "create_order": ("name", "phone", "items"),
-    "update_order": ("phone", "items"),
+    "update_order": ("phone",),
 }
 _SUCCESS_MSG = {
     "create_booking": "Booking saved. Now warmly confirm to the customer in spoken Telugu and "
@@ -69,9 +69,9 @@ _SUCCESS_MSG = {
     "WhatsApp message is coming and ask them to send a photo of the problem there, and that the "
     "team will contact them.",
     "create_order": "Order placed. In Telugu: read the items back; if dine-in/pickup say it'll "
-    "be ready in about ముప్పై నిమిషాల్లో, if delivery say updates come on WhatsApp; then say a "
-    "payment link is coming on WhatsApp and they can pay via it or cash on delivery. Do NOT "
-    "state a rupee total.",
+    "be ready in about ముప్పై నిమిషాల్లో, if delivery say updates come on WhatsApp; then confirm "
+    "the payment they chose — if prepaid say the WhatsApp payment link is coming, if cod say they "
+    "can pay cash when it arrives. Do NOT state a rupee total.",
     "update_order": "Order updated. Confirm the change warmly in Telugu with the new total in "
     "Telugu words + రూపాయలు.",
 }
@@ -86,15 +86,23 @@ _FALLBACK_CONFIRM = {
 
 def _fallback_for(tool: str | None, args: dict | None) -> str:
     """Spoken line used when the model adds no text after a tool call (common on flash-lite).
-    For orders it tailors the line to the order type so dine-in/pickup still hear ~30 min."""
+    For orders it tailors the line to the order type AND the chosen payment method."""
     if tool == "create_order":
-        ot = ((args or {}).get("order_type") or "").lower()
+        a = args or {}
+        ot = (a.get("order_type") or "").lower()
+        pay = (a.get("payment") or "").lower()
         if ot in ("dinein", "pickup"):
             ready = "మీ order తీసుకున్నాను అండి, సుమారు ముప్పై నిమిషాల్లో ready అవుతుంది. "
         else:
             ready = "మీ order తీసుకున్నాను అండి, delivery updates WhatsApp లో పంపిస్తాను. "
-        return (ready + "Payment link కూడా WhatsApp లో వస్తుంది — దాని ద్వారా pay చేయొచ్చు లేదా "
-                "order వచ్చినప్పుడు cash on delivery చేయొచ్చు. ధన్యవాదాలు! 🙏")
+        if pay == "cod":
+            payline = "Order వచ్చినప్పుడు cash ఇవ్వొచ్చు. ధన్యవాదాలు! 🙏"
+        elif pay == "prepaid":
+            payline = "Payment link WhatsApp లో పంపిస్తాను, దాని ద్వారా pay చేయండి. ధన్యవాదాలు! 🙏"
+        else:
+            payline = ("Payment link WhatsApp లో వస్తుంది — దాని ద్వారా pay చేయొచ్చు లేదా order "
+                       "వచ్చినప్పుడు cash on delivery చేయొచ్చు. ధన్యవాదాలు! 🙏")
+        return ready + payline
     return _FALLBACK_CONFIRM.get(tool, "సరే అండి, అయ్యింది.")
 
 
