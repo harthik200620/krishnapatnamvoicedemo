@@ -333,15 +333,18 @@ function prependCard(box, card){
   box.insertBefore(card, box.querySelector('.bk') || null);
 }
 function addBookingCard(b){
-  const card=document.createElement('div'); card.className='bk';
+  const box=$('bookings');
+  let card = box.querySelector('.bk[data-id="'+b.id+'"]');  // update in place if the booking changed
+  const fresh = !card;
+  if(!card){ card=document.createElement('div'); card.className='bk'; card.setAttribute('data-id', b.id); }
   const notes = b.notes ? `<div class="notes">“${esc(b.notes)}”</div>` : '';
   card.innerHTML =
     `<div class="top"><span class="nm">${esc(b.name)}</span><span class="badge">${esc(b.status||'confirmed')}</span></div>`+
     `<div class="row"><span><b>📞</b> ${esc(b.phone)}</span><span><b>👥</b> ${esc(b.party_size)}</span></div>`+
     `<div class="row"><span><b>📅</b> ${esc(b.date)}</span><span><b>🕐</b> ${esc(b.time)}</span></div>`+
     notes + `<div class="when">${b.created_at? 'saved '+esc(b.created_at):''} · #${esc(b.id)}</div>`;
-  prependCard($('bookings'), card);
-  $('bkcount').textContent = $('bookings').querySelectorAll('.bk').length;
+  if(fresh) prependCard(box, card);
+  $('bkcount').textContent = box.querySelectorAll('.bk').length;
 }
 function addComplaintCard(c){
   const card=document.createElement('div'); card.className='bk cmp';
@@ -525,8 +528,22 @@ async function postTurn(opts){
   if(d.complaint){ addComplaintCard(d.complaint); switchTab('complaints'); endingCall=true; }
   if(Array.isArray(d.history)) httpHistory=d.history;
   waitingForServer=false;
-  if(d.audio_b64){ playAudio(b64toBlob(d.audio_b64, d.audio_mime)); endOfStream(); }
+  if(d.audio_b64){
+    playAudio(b64toBlob(d.audio_b64, d.audio_mime));
+    if(d.rest_text){ sayRest(d.rest_text); }   // fetch the rest of the reply while chunk 1 plays
+    else endOfStream();
+  }
   else afterPlay();
+}
+// HTTP mode: the server returns only the first sentence's audio; synthesize the remainder via
+// /api/say in parallel with playback so the whole reply isn't waited on before speaking.
+async function sayRest(text){
+  try{
+    const fd=new FormData(); fd.append('text', text); fd.append('password', adminPw);
+    const j = await (await fetch('/api/say',{method:'POST',body:fd})).json();
+    if(j && j.audio_b64){ playAudio(b64toBlob(j.audio_b64, j.audio_mime)); }
+  }catch(e){}
+  endOfStream();
 }
 
 function onWsMessage(ev){
@@ -622,7 +639,7 @@ async function sendTyped(){
 
 // ── Mic capture (Sarvam path): AudioWorklet + energy VAD + WAV encode ─────────
 let capturing=false, speechFrames=[], preRoll=[], silentSamples=0, speechSamples=0, voicedSamples=0, srate=48000;
-const PREROLL_MS=300, SILENCE_END_MS=650, MIN_SPEECH_MS=300, MAX_TURN_MS=15000;
+const PREROLL_MS=300, SILENCE_END_MS=600, MIN_SPEECH_MS=300, MAX_TURN_MS=15000;
 // A full phrase (>= MIN_COMPLETE_MS of actual voice) ends on a normal pause; a short fragment
 // like "నేను" is given up to FRAGMENT_WAIT_MS to continue before we finalize it — so a thinking
 // gap mid-sentence no longer cuts the caller off and ships a half sentence to the STT.

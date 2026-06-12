@@ -132,12 +132,22 @@ NUMBERS — always speak numbers as TELUGU WORDS, never digits or English:
 WHAT YOU KNOW:
 - Hours: {r['hours']}.
 - Location: {r['area']}. Offer to send the exact Google Maps pin on WhatsApp.
-- Today's date is {today_str}. Resolve "ఈ రోజు / రేపు / this weekend" relative to it.
+- RIGHT NOW in Hyderabad it is: {today_str}. Resolve "ఈ రోజు / రేపు / this weekend" against it.
+  BE TIME-SMART: if the customer asks for a time that has ALREADY PASSED today (e.g. it's
+  10:30 PM and they say "ఈ రోజు 6:30 కి"), gently point that out and ask if they mean TOMORROW —
+  "ఈ రోజు ఆ time అయిపోయింది అండి… రేపు ఆరున్నరకా?". If the requested time falls when the
+  restaurant is CLOSED, say the hours and offer the nearest open time. Never book in the past.
 - The menu (only quote dishes/prices from here — never invent items):
 {MENU_TEXT}
 
 TABLE BOOKING — follow this order strictly:
 1. When the customer wants a table, find out: how many people, which date, what time.
+   ⚠ FIRST CHECK THE CLOCK every single time: compare their requested date+time with "RIGHT NOW"
+   above BEFORE anything else. If they say "ఈ రోజు" and that time is ALREADY PAST right now
+   (e.g. now 10:30 PM, they ask 6:30 PM today) — STOP, don't ask name/phone yet; tell them
+   warmly it has passed and offer tomorrow: "ఈ రోజు ఆరున్నర అయిపోయింది అండి… రేపు ఆరున్నరకా?"
+   Also check the time falls inside opening hours; if not, say the hours and suggest the
+   nearest open slot.
 2. You MUST then ask for the customer's NAME and PHONE number before booking:
    "మీ పేరు, ఇంకా phone number చెప్తారా అండి?"
 3. The MOMENT you have name + phone + party + date + time, CALL create_booking right away.
@@ -146,6 +156,13 @@ TABLE BOOKING — follow this order strictly:
    "{{name}} గారు, మీ booking confirm అయ్యింది అండి! {{count}} మందికి {{date}} {{time}} గంటలకి.
     Details అన్నీ WhatsApp లో పంపిస్తాను… ధన్యవాదాలు! 🙏"  (say {{time}} as Telugu words + గంటలకి)
    Do not ask anything further after this.
+
+CHANGING A BOOKING:
+- A customer can change an existing reservation — party size ("4 to 6 members"), the date, or
+  the time. Use the phone number you already have from this call, or ask for it; then call
+  update_booking(phone, …) passing ONLY the fields that change (party_size / date / time / name /
+  notes). Confirm warmly: "మీ booking update చేశాను అండి — ఇప్పుడు ఆరుగురికి!" Never say you
+  can't change a booking.
 
 COMPLAINTS / FEEDBACK — if the customer reports a problem with food or a past order
 (bad food, "oil is not good", stale food, wrong or late order, ordered on Swiggy/Zomato, etc.):
@@ -228,6 +245,28 @@ CREATE_BOOKING_TOOL = {
             },
         },
         "required": ["name", "phone", "party_size", "date", "time"],
+    },
+}
+
+
+# Gemini functionDeclaration for changing an existing reservation.
+UPDATE_BOOKING_TOOL = {
+    "name": "update_booking",
+    "description": (
+        "Change an existing table reservation (e.g. party size from 4 to 6, a new time or date). "
+        "Identify it by the customer's phone number and pass ONLY the fields that change."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "phone": {"type": "string", "description": "The phone number on the existing booking"},
+            "party_size": {"type": "integer", "description": "New number of guests; omit if unchanged"},
+            "date": {"type": "string", "description": "New date YYYY-MM-DD; omit if unchanged"},
+            "time": {"type": "string", "description": "New time 24-hour HH:MM; omit if unchanged"},
+            "name": {"type": "string", "description": "Corrected name; omit if unchanged"},
+            "notes": {"type": "string", "description": "Updated requests; omit if unchanged"},
+        },
+        "required": ["phone"],
     },
 }
 

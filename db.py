@@ -137,6 +137,40 @@ def insert_booking(b: dict) -> dict:
         return dict(row)
 
 
+def update_latest_booking(
+    phone: str,
+    party_size=None,
+    date: str | None = None,
+    time: str | None = None,
+    name: str | None = None,
+    notes: str | None = None,
+) -> dict | None:
+    """Update the most recent booking for a phone number, changing only the fields passed.
+    Returns the updated row or None if no booking matches."""
+    with _lock:
+        conn = _connect()
+        row = conn.execute(
+            "SELECT * FROM bookings WHERE phone=? ORDER BY id DESC LIMIT 1", (str(phone).strip(),)
+        ).fetchone()
+        if not row:
+            return None
+        try:
+            new_party = int(party_size) if party_size else row["party_size"]
+        except (TypeError, ValueError):
+            new_party = row["party_size"]
+        new_date = row["date"] if date in (None, "") else str(date).strip()
+        new_time = row["time"] if time in (None, "") else str(time).strip()
+        new_name = row["name"] if name in (None, "") else str(name).strip()
+        new_notes = row["notes"] if notes is None else str(notes).strip()
+        conn.execute(
+            "UPDATE bookings SET name=?, party_size=?, date=?, time=?, notes=?, status='changed' "
+            "WHERE id=?",
+            (new_name, new_party, new_date, new_time, new_notes, row["id"]),
+        )
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM bookings WHERE id=?", (row["id"],)).fetchone())
+
+
 def recent_bookings(limit: int = 50) -> list[dict]:
     with _lock:
         conn = _connect()

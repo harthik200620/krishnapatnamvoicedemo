@@ -10,6 +10,7 @@ Run:  python -m uvicorn main:app --reload --port 8000   ->  http://localhost:800
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
@@ -51,6 +52,10 @@ async def index():
 
 @app.get("/config")
 async def config():
+    # The page hits /config on load — use it to warm the ElevenLabs probe on a serverless
+    # cold start so the FIRST spoken turn doesn't pay for the probe.
+    if tts._eleven_ok is None:
+        await tts.probe_elevenlabs()
     return {
         "restaurant": "Krishnapatnam",
         "llm_ok": llm.llm_available(),
@@ -133,6 +138,15 @@ async def api_turn(
         captured["booking"] = db.insert_booking(args)
         return captured["booking"]
 
+    async def on_update_booking(args):
+        row = db.update_latest_booking(
+            args.get("phone", ""), args.get("party_size"), args.get("date"),
+            args.get("time"), args.get("name"), args.get("notes"),
+        )
+        if row:
+            captured["booking"] = row
+        return row
+
     async def on_complaint(args):
         captured["complaint"] = db.insert_complaint(args)
         return captured["complaint"]
@@ -155,6 +169,7 @@ async def api_turn(
             contents, user_text,
             {
                 "create_booking": on_booking,
+                "update_booking": on_update_booking,
                 "log_complaint": on_complaint,
                 "create_order": on_order,
                 "update_order": on_update_order,
@@ -163,13 +178,20 @@ async def api_turn(
     except Exception as e:
         return {"error": f"llm: {e}", "transcript": transcript, "history": contents}
 
-    audio_b64, mime = None, None
-    try:
-        a, m = await tts.synthesize(reply)
-        if a:
-            audio_b64, mime = base64.b64encode(a).decode("ascii"), m
-    except Exception:
-        pass
+    # Synthesize ONLY the first sentence here and hand the rest back as text — the client
+    # plays the first chunk immediately and fetches the remainder via /api/say while it plays.
+    # Cuts the rest-of-reply TTS time out of the perceived response.
+    chunks = _split_for_tts(reply)
+    audio_b64, mime, rest_text = None, None, None
+    if chunks:
+        try:
+            a, m = await tts.synthesize(chunks[0])
+            if a:
+                audio_b64, mime = base64.b64encode(a).decode("ascii"), m
+                if len(chunks) > 1:
+                    rest_text = chunks[1]
+        except Exception:
+            pass
 
     return {
         "transcript": transcript,
@@ -180,6 +202,7 @@ async def api_turn(
         "history": contents,
         "audio_b64": audio_b64,
         "audio_mime": mime,
+        "rest_text": rest_text,
     }
 
 
@@ -222,6 +245,16 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
         db.log_turn(sid, "tool", "booking " + json.dumps(args, ensure_ascii=False))
         return row
 
+    async def on_update_booking(args: dict):
+        row = db.update_latest_booking(
+            args.get("phone", ""), args.get("party_size"), args.get("date"),
+            args.get("time"), args.get("name"), args.get("notes"),
+        )
+        if row:
+            await _send(ws, {"type": "booking_created", "booking": row})
+            db.log_turn(sid, "tool", "booking_update " + json.dumps(args, ensure_ascii=False))
+        return row
+
     async def on_complaint(args: dict) -> dict:
         row = db.insert_complaint(args)
         await _send(ws, {"type": "complaint_created", "complaint": row})
@@ -250,6 +283,7 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
             text,
             {
                 "create_booking": on_booking,
+                "update_booking": on_update_booking,
                 "log_complaint": on_complaint,
                 "create_order": on_order,
                 "update_order": on_update_order,
@@ -264,10 +298,12 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
     db.log_turn(sid, "assistant", assistant_text)
 
     await _send(ws, {"type": "status", "state": "speaking"})
-    # Stream sentence-by-sentence: the first sentence plays while the rest is still synthesizing.
-    for chunk in _split_for_tts(assistant_text):
+    # Stream sentence-by-sentence, synthesizing ALL chunks concurrently and sending in order —
+    # the first sentence plays while the rest renders, with zero serialization between chunks.
+    tasks = [asyncio.create_task(tts.synthesize(c)) for c in _split_for_tts(assistant_text)]
+    for t in tasks:
         try:
-            audio, mime = await tts.synthesize(chunk)
+            audio, mime = await t
         except Exception:
             audio, mime = None, None
         if audio:

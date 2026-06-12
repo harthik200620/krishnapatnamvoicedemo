@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -17,6 +17,7 @@ from . import _http
 from .prompts import (
     build_system_prompt,
     CREATE_BOOKING_TOOL,
+    UPDATE_BOOKING_TOOL,
     LOG_COMPLAINT_TOOL,
     CREATE_ORDER_TOOL,
     UPDATE_ORDER_TOOL,
@@ -59,6 +60,7 @@ _URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generate
 # Fields each tool needs before it may fire; the server enforces this even if the model rushes.
 _REQUIRED_BY_TOOL = {
     "create_booking": ("name", "phone", "party_size", "date", "time"),
+    "update_booking": ("phone",),
     "log_complaint": ("name", "phone", "issue"),
     "create_order": ("name", "phone", "items"),
     "update_order": ("phone",),
@@ -107,6 +109,15 @@ def _fallback_for(tool: str | None, args: dict | None) -> str:
         tail = f" {p}." if p else ""
         return f"{who}మీ table book అయ్యింది అండి!{tail} Details అన్నీ WhatsApp లో పంపిస్తాను 🙏"
 
+    if tool == "update_booking":
+        try:
+            party = int(a.get("party_size") or 0)
+        except (TypeError, ValueError):
+            party = 0
+        p = _PARTY_TE.get(party, (f"{party} మందికి" if party else ""))
+        mid = f" — ఇప్పుడు {p}" if p else ""
+        return f"మీ booking update చేశాను అండి{mid}. కొత్త details WhatsApp లో పంపిస్తాను 🙏"
+
     if tool == "create_order":
         items = str(a.get("items") or "").strip()
         ot = (a.get("order_type") or "").lower()
@@ -136,6 +147,35 @@ def _fallback_for(tool: str | None, args: dict | None) -> str:
     return _FALLBACK_CONFIRM.get(tool, "సరే అండి, అయ్యింది.")
 
 
+_JUNK_NAMES = {"n/a", "na", "none", "null", "unknown", "customer", "guest", "test", "xxx", "abc"}
+
+
+def _validate_args(tool: str, args: dict) -> str | None:
+    """Deterministic guards the model can't rush past: no bookings in the past, no invented
+    placeholder names, no half-heard phone numbers. Returns an error message or None."""
+    if tool in ("create_booking", "update_booking"):
+        d, t = str(args.get("date") or ""), str(args.get("time") or "")
+        if d and t:
+            try:
+                when = datetime.strptime(d + " " + t, "%Y-%m-%d %H:%M").replace(tzinfo=_IST)
+                if when < datetime.now(_IST):
+                    return (f"REJECTED: {d} {t} is already in the past — right now it is "
+                            f"{_today()}. Tell the customer warmly that this time has already "
+                            "passed today and ask if tomorrow at the same time works.")
+            except ValueError:
+                pass
+    if tool in ("create_booking", "create_order", "log_complaint"):
+        nm = str(args.get("name") or "").strip()
+        if len(nm) < 2 or nm.lower() in _JUNK_NAMES:
+            return ("Invalid name — you must ASK the customer for their real name. Never invent "
+                    "one or use a placeholder.")
+        digits = re.sub(r"\D", "", str(args.get("phone") or ""))
+        if len(digits) < 10:
+            return ("Phone number incomplete — ask the customer for their full 10-digit mobile "
+                    "number before proceeding.")
+    return None
+
+
 def llm_available() -> bool:
     return bool(_KEYS)
 
@@ -144,8 +184,13 @@ def key_count() -> int:
     return len(_KEYS)
 
 
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
 def _today() -> str:
-    return datetime.now().strftime("%A, %Y-%m-%d")
+    """Current date AND time in Hyderabad (IST) — explicit tz because Vercel runs in UTC."""
+    now = datetime.now(_IST)
+    return now.strftime("%A, %Y-%m-%d, current time %I:%M %p IST")
 
 
 def _should_rotate(status: int, text: str) -> bool:
@@ -169,6 +214,7 @@ async def _generate(contents: list) -> dict:
             {
                 "functionDeclarations": [
                     CREATE_BOOKING_TOOL,
+                    UPDATE_BOOKING_TOOL,
                     LOG_COMPLAINT_TOOL,
                     CREATE_ORDER_TOOL,
                     UPDATE_ORDER_TOOL,
@@ -176,8 +222,11 @@ async def _generate(contents: list) -> dict:
             }
         ],
         "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800},
+        # Replies are 1-2 sentences; a tight cap + thinking off keeps generation fast.
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 300},
     }
+    if "2.5" in GEMINI_MODEL:
+        body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
     url = _URL.format(model=GEMINI_MODEL)
     last_err = None
     client = _http.client()  # shared keep-alive client (no per-call TLS handshake)
@@ -239,6 +288,13 @@ async def gemini_turn(contents: list, user_text: str, handlers: dict) -> str:
                 contents.append({"role": "user",
                                  "parts": [{"functionResponse": {"name": name, "response": response}}]})
                 continue  # let the model ask for the missing fields
+
+            problem = _validate_args(name, args)
+            if problem:
+                response = {"status": "error", "message": problem}
+                contents.append({"role": "user",
+                                 "parts": [{"functionResponse": {"name": name, "response": response}}]})
+                continue  # let the model relay the problem and re-collect
 
             row = await handlers[name](args)
             if row is None:
