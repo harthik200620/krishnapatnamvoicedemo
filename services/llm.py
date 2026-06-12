@@ -8,6 +8,7 @@ returns the model's spoken reply. `contents` is mutated in place to persist hist
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime
 
 import httpx
@@ -15,7 +16,10 @@ import httpx
 from .prompts import build_system_prompt, CREATE_BOOKING_TOOL, LOG_COMPLAINT_TOOL
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+# Sanitize the model: trim whitespace/quotes and fall back to a known-good id if the env
+# value is empty or garbled (e.g. a stray character from a dashboard bulk-paste).
+_raw_model = os.getenv("GEMINI_MODEL", "").strip().strip('"').strip("'").strip()
+GEMINI_MODEL = _raw_model if re.fullmatch(r"gemini-[A-Za-z0-9.\-]+", _raw_model) else "gemini-2.5-flash-lite"
 _URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # Fields each tool needs before it may fire; the server enforces this even if the model rushes.
