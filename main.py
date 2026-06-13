@@ -90,10 +90,11 @@ async def api_login(password: str = Form(default="")):
     return {"ok": password == ADMIN_PASSWORD}
 
 
-# Short spoken acknowledgments played the INSTANT the caller stops talking, masking the
+# Single spoken acknowledgment played the INSTANT the caller stops talking, masking the
 # ~4-5s eleven_v3 synthesis of the real reply. Synthesized once per server start in the
-# active voice and cached; the client picks one at random per turn.
-_FILLER_TEXTS = ["హా అండి…", "సరే అండి…", "ఒక్క క్షణం అండి…", "అలాగే అండి…"]
+# active voice and cached. Kept to ONE consistent line ("just a minute") on purpose —
+# no cycling through different phrases.
+_FILLER_TEXTS = ["ఒక్క నిమిషం అండి…"]
 _filler_cache: dict[str, list] = {}
 
 
