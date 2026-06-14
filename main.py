@@ -90,26 +90,34 @@ async def api_login(password: str = Form(default="")):
     return {"ok": password == ADMIN_PASSWORD}
 
 
-# Single spoken acknowledgment played the INSTANT the caller stops talking, masking the
-# ~4-5s eleven_v3 synthesis of the real reply. Synthesized once per server start in the
-# active voice and cached. Kept to ONE consistent line ("just a minute") on purpose —
-# no cycling through different phrases.
-_FILLER_TEXTS = ["ఒక్క నిమిషం అండి…"]
+# One spoken acknowledgment per language, played the INSTANT the caller stops talking, masking
+# the ~4-5s eleven_v3 synthesis of the real reply. Synthesized once per (provider, voice, lang)
+# and cached. One consistent line per language — no cycling through phrases.
+_FILLER_TEXTS = {
+    "english": ["One moment…"],
+    "hindi": ["एक मिनट…"],
+    "telugu": ["ఒక్క నిమిషం అండి…"],
+}
 _filler_cache: dict[str, list] = {}
+
+# Caller's chosen language → Sarvam STT language_code.
+_LANG_CODE = {"english": "en-IN", "hindi": "hi-IN", "telugu": "te-IN"}
 
 
 @app.post("/api/fillers")
-async def api_fillers(password: str = Form(default="")):
+async def api_fillers(password: str = Form(default=""), lang: str = Form(default="english")):
     if password != ADMIN_PASSWORD:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     if tts._eleven_ok is None:          # settle the provider BEFORE keying the cache
         await tts.probe_elevenlabs()
-    key = f"{tts.active_provider()}::{tts.ELEVEN_VOICE}"
+    lang = (lang or "english").lower()
+    texts = _FILLER_TEXTS.get(lang, _FILLER_TEXTS["english"])
+    key = f"{tts.active_provider()}::{tts.ELEVEN_VOICE}::{lang}"
     if key not in _filler_cache:
         # SEQUENTIAL on purpose: the ElevenLabs free tier allows only 2 concurrent requests,
         # and a parallel warm-up 429s. One-time cost at page load, so latency doesn't matter.
         out = []
-        for t in _FILLER_TEXTS:
+        for t in texts:
             try:
                 a, m = await tts.synthesize(t)
                 if a:
@@ -155,6 +163,7 @@ async def api_turn(
     orders: str = Form(default="[]"),
     bookings: str = Form(default="[]"),
     password: str = Form(default=""),
+    lang: str = Form(default="english"),
     audio: UploadFile = File(default=None),
 ):
     """Stateless turn for HTTP/serverless clients (Vercel has no WebSocket).
@@ -180,7 +189,7 @@ async def api_turn(
     if audio is not None:
         wav = await audio.read()
         try:
-            transcript = await stt.transcribe_wav(wav)
+            transcript = await stt.transcribe_wav(wav, _LANG_CODE.get(lang.lower(), "en-IN"))
         except Exception as e:
             return {"error": f"stt: {e}", "history": contents}
         user_text = transcript
@@ -249,6 +258,7 @@ async def api_turn(
                 "create_order": on_order,
                 "update_order": on_update_order,
             },
+            lang=lang,
         )
     except Exception as e:
         return {"error": f"llm: {e}", "transcript": transcript, "history": contents}
@@ -363,6 +373,7 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
                 "create_order": on_order,
                 "update_order": on_update_order,
             },
+            lang=state.get("lang", "english"),
         )
     except Exception as e:
         await _send(ws, {"type": "error", "where": "llm", "message": str(e), "recoverable": True})
@@ -390,7 +401,7 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
 async def _process_audio(ws: WebSocket, state: dict, wav: bytes):
     await _send(ws, {"type": "status", "state": "transcribing"})
     try:
-        text = await stt.transcribe_wav(wav)
+        text = await stt.transcribe_wav(wav, _LANG_CODE.get(state.get("lang", "english").lower(), "en-IN"))
     except Exception as e:
         await _send(ws, {"type": "error", "where": "stt", "message": str(e), "recoverable": True})
         await _send(ws, {"type": "status", "state": "idle"})
@@ -404,7 +415,7 @@ async def _process_audio(ws: WebSocket, state: dict, wav: bytes):
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
-    state = {"session_id": uuid.uuid4().hex, "contents": []}
+    state = {"session_id": uuid.uuid4().hex, "contents": [], "lang": "english"}
     db.ensure_conversation(state["session_id"])
     try:
         while True:
@@ -428,9 +439,12 @@ async def ws_endpoint(ws: WebSocket):
                                      "message": "unauthorized", "recoverable": False})
                     await ws.close()
                     return
+                state["lang"] = (data.get("lang") or "english")
                 # client may carry its own session id; keep the server one authoritative
                 await _send(ws, {"type": "status", "state": "idle", "detail": "connected"})
             elif mtype == "turn_text":
+                if data.get("lang"):
+                    state["lang"] = data["lang"]
                 await _process_text(
                     ws, state, data.get("text", ""), silent=bool(data.get("silent"))
                 )

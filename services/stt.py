@@ -38,7 +38,9 @@ def stt_available() -> bool:
     return bool(SARVAM_API_KEY)
 
 
-async def transcribe_wav(wav_bytes: bytes) -> str:
+async def transcribe_wav(wav_bytes: bytes, language_code: str = "en-IN") -> str:
+    """`language_code` is the caller's chosen language (en-IN / hi-IN / te-IN). Saaras code-mix
+    still understands English words mixed in; this just biases recognition to the right script."""
     if not SARVAM_API_KEY:
         raise RuntimeError("SARVAM_API_KEY not set")
 
@@ -47,7 +49,7 @@ async def transcribe_wav(wav_bytes: bytes) -> str:
     client = _http.client()
     for attempt in _ATTEMPTS:
         files = {"file": ("turn.wav", wav_bytes, "audio/wav")}
-        data = {"model": attempt["model"], "language_code": "te-IN", **attempt["extra"]}
+        data = {"model": attempt["model"], "language_code": language_code, **attempt["extra"]}
         try:
             resp = await client.post(STT_URL, headers=headers, files=files, data=data, timeout=30)
             if resp.status_code >= 400:

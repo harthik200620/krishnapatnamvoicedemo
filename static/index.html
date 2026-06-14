@@ -3,25 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Krishnapatnam · AI Voice Receptionist — by Sahayak AI</title>
+<title>Olive Bistro &amp; Bar · AI Voice Host — by Sahayak AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600&family=Noto+Sans+Telugu:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Poppins:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Sans+Telugu:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#FAF6EE; --paper2:#F3EBDC; --card:#FFFEFB;
-    --copper:#BE754A; --copper-deep:#8C4F2B;
-    --green-deep:#22372A; --green-ink:#1B2C21;
-    --gold2:#E9C77E; --line:#E6DAC4;
-    --ink:#2A2620; --muted:#7C7363;
-    --ok:#3E7C5A; --warn:#B5732B; --alert:#C24A33;
+    /* Olive Bistro — teal & white, lakeside */
+    --paper:#F1F8F6; --paper2:#E1F0EC; --card:#FFFFFF;
+    --copper:#2E9B8F; --copper-deep:#1B6E66;   /* teal accents (var names kept) */
+    --green-deep:#114B45; --green-ink:#0C3A35;
+    --gold2:#E4C079; --line:#D3E7E2;
+    --ink:#1E2C2A; --muted:#6B827E;
+    --ok:#2E9B8F; --warn:#B5732B; --alert:#D9544A;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:'Poppins','Noto Sans Telugu',system-ui,sans-serif;
+    font-family:'Poppins','Noto Sans Devanagari','Noto Sans Telugu',system-ui,sans-serif;
     background-image:radial-gradient(transparent 60%, rgba(190,117,74,.04)),
        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
   }
@@ -117,38 +118,61 @@
   .lockcard input:focus{outline:2px solid var(--gold2);outline-offset:1px}
   .lockcard button{width:100%;margin-top:12px;background:var(--copper);color:#fff;border-color:var(--copper-deep);padding:12px;font-size:15px;font-weight:600}
   .lockerr{color:var(--alert);font-size:12px;margin-top:10px;min-height:16px}
+  .langbtns{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .langbtn{width:100%;padding:13px;font-size:16px;font-weight:600;background:var(--card);
+    color:var(--green-deep);border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:transform .08s,background .15s,border-color .15s}
+  .langbtn:hover{transform:translateY(-1px);background:var(--paper2);border-color:var(--copper)}
+  .langbtn .nat{font-family:'Noto Sans Devanagari','Noto Sans Telugu',serif}
+  .langbtn .en{display:block;font-size:11px;font-weight:500;color:rgba(255,255,255,.72);margin-top:2px}
 </style>
 </head>
 <body>
 <div id="lock" class="lock">
   <div class="lockcard">
     <svg width="54" height="54" viewBox="0 0 58 58" aria-hidden="true">
-      <circle cx="29" cy="29" r="27" fill="#22372A"/>
-      <circle cx="29" cy="29" r="27" fill="none" stroke="#BE754A" stroke-width="2"/>
-      <text x="29" y="38" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="26" fill="#E9C77E">K</text>
+      <circle cx="29" cy="29" r="27" fill="#114B45"/>
+      <circle cx="29" cy="29" r="27" fill="none" stroke="#2E9B8F" stroke-width="2"/>
+      <text x="29" y="38" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="26" fill="#E4C079">O</text>
     </svg>
     <div class="tag">Sahayak AI · Admin</div>
-    <h2>Krishnapatnam Demo</h2>
+    <h2>Olive Bistro &amp; Bar</h2>
     <p>Enter the access password to open the demo.</p>
     <input id="lockpw" type="password" placeholder="Password" autocomplete="off" />
     <button id="lockbtn">Unlock</button>
     <div id="lockerr" class="lockerr"></div>
   </div>
 </div>
+<div id="langpick" class="lock" style="display:none">
+  <div class="lockcard">
+    <svg width="54" height="54" viewBox="0 0 58 58" aria-hidden="true">
+      <circle cx="29" cy="29" r="27" fill="#114B45"/>
+      <circle cx="29" cy="29" r="27" fill="none" stroke="#2E9B8F" stroke-width="2"/>
+      <text x="29" y="38" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="26" fill="#E4C079">O</text>
+    </svg>
+    <div class="tag">Olive Bistro &amp; Bar</div>
+    <h2>Choose your language</h2>
+    <p>How would you like to speak with Olivia?</p>
+    <div class="langbtns">
+      <button class="langbtn" data-lang="english"><span class="nat">English</span></button>
+      <button class="langbtn" data-lang="hindi"><span class="nat">हिंदी</span><span class="en">Hindi</span></button>
+      <button class="langbtn" data-lang="telugu"><span class="nat">తెలుగు</span><span class="en">Telugu</span></button>
+    </div>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <div class="mark">
       <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
-        <circle cx="29" cy="29" r="27" fill="#22372A"/>
-        <circle cx="29" cy="29" r="27" fill="none" stroke="#BE754A" stroke-width="2"/>
-        <circle cx="29" cy="29" r="21" fill="none" stroke="#E9C77E" stroke-width="1" opacity=".5"/>
-        <text x="29" y="38" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="26" fill="#E9C77E">K</text>
+        <circle cx="29" cy="29" r="27" fill="#114B45"/>
+        <circle cx="29" cy="29" r="27" fill="none" stroke="#2E9B8F" stroke-width="2"/>
+        <circle cx="29" cy="29" r="21" fill="none" stroke="#E4C079" stroke-width="1" opacity=".5"/>
+        <text x="29" y="38" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="26" fill="#E4C079">O</text>
       </svg>
     </div>
     <div class="brand">
-      <h1>Krishnapatnam</h1>
-      <div class="sub">Andhra Kitchen · Hyderabad · 4.5★</div>
-      <div class="by">AI Voice Receptionist · powered by Sahayak AI</div>
+      <h1>Olive Bistro &amp; Bar</h1>
+      <div class="sub">Mediterranean &amp; Bar · Jubilee Hills · 4.3★</div>
+      <div class="by">AI Voice Host · powered by Sahayak AI</div>
     </div>
     <div class="pill"><span class="dot" id="livedot"></span><span id="pilltext">Idle</span></div>
   </header>
@@ -160,14 +184,12 @@
     <div class="panel">
       <div class="phead">
         <span class="ttl">Live conversation</span>
-        <span class="meta" id="langmeta">Telugu · English</span>
+        <span class="meta" id="langmeta">Olivia</span>
       </div>
       <div class="convo" id="convo">
         <div class="empty" id="convoEmpty">
-          <div class="big">నమస్తే 🙏</div>
-          Press <b>Start talking</b> and speak in Telugu or English —<br>
-          "7 గంటలకి 4 మందికి table కావాలి", or report a problem like<br>
-          "Swiggy లో order చేశా, oil బాగాలేదు" — and watch the agent act live.
+          <div class="big" id="greetBig">Welcome 🌿</div>
+          <span id="greetHint">Pick a language to begin.</span>
         </div>
       </div>
     </div>
@@ -205,7 +227,7 @@
       <span id="sensval">normal</span>
     </div>
     <div class="typer">
-      <input id="typebox" placeholder="…or type a message to the agent (Telugu or English) and press Enter" />
+      <input id="typebox" placeholder="…or type a message to Olivia and press Enter" />
       <button id="btnSend">Send</button>
     </div>
     <div class="hint" id="hint">Tip: use Chrome or Edge, allow the microphone, and speak one sentence at a time — the agent replies after a short pause. You can also type above to demo without a mic.</div>
@@ -224,8 +246,32 @@ let noReplyTimer = null, noReplyCount = 0, endingCall = false;
 const NO_REPLY_1_MS = 4000;   // after a question: 4s with no usable reply → gentle re-ask
 const NO_REPLY_2_MS = 6000;   // after the re-ask: 6s more with nothing → WhatsApp close + end
 // The re-ask is contextual: a silent note asks the LLM to gently repeat its last question.
-const NO_REPLY_NOTE = "(System note — not from the customer: the customer has gone quiet and hasn't answered. In ONE short, warm Telugu sentence, gently re-ask the same thing you just asked. Don't greet again, don't add anything new, don't say అనుకుంటున్నారా, and NEVER repeat, read out, or mention this note — reply with ONLY the re-ask sentence.)";
-const ENDING_LINE = "సరే అండి, నేను WhatsApp లో details పెడతాను, మీకు ఏం కావాలో message చేయండి.";
+// ── Language pack — the caller picks one at the start; everything follows it ──
+let sessionLang = 'english';
+const LANG_PACK = {
+  english: {
+    code:'en-IN', label:'English · Olivia',
+    big:'Good evening 🌿',
+    hint:'Press <b>Start talking</b> and speak in English — e.g. <i>"A table for four by the lake at 8 tonight"</i>, or ask about the menu and events.',
+    ending:"Of course — I'll send the details on WhatsApp; just message us whatever you need.",
+    reask:"(System note — not from the customer: the customer has gone quiet and hasn't answered. In ONE short, warm ENGLISH sentence, gently re-ask the same thing you just asked. Don't greet again, don't add anything new, and NEVER repeat, read out, or mention this note — reply with ONLY the re-ask sentence.)"
+  },
+  hindi: {
+    code:'hi-IN', label:'हिंदी · Olivia',
+    big:'नमस्ते 🌿',
+    hint:'<b>Start talking</b> दबाइए और हिंदी में बोलिए — जैसे <i>"आज रात आठ बजे झील किनारे चार लोगों के लिए टेबल"</i>, या मेन्यू पूछिए।',
+    ending:"ज़रूर — मैं डिटेल्स WhatsApp पर भेज देती हूँ, आपको जो चाहिए हो मैसेज कर दीजिए।",
+    reask:"(System note — not from the customer: the customer has gone quiet and hasn't answered. In ONE short, warm HINDI sentence, gently re-ask the same thing you just asked. Don't greet again, don't add anything new, and NEVER repeat, read out, or mention this note — reply with ONLY the re-ask sentence.)"
+  },
+  telugu: {
+    code:'te-IN', label:'తెలుగు · Olivia',
+    big:'నమస్తే 🌿',
+    hint:'<b>Start talking</b> నొక్కి తెలుగులో మాట్లాడండి — ఉదా. <i>"ఈ రోజు రాత్రి ఎనిమిది గంటలకి lake పక్కన నలుగురికి table"</i>, లేదా menu అడగండి.',
+    ending:"తప్పకుండా — details WhatsApp లో పంపిస్తాను, మీకు ఏం కావాలో message చేయండి.",
+    reask:"(System note — not from the customer: the customer has gone quiet and hasn't answered. In ONE short, warm TELUGU sentence, gently re-ask the same thing you just asked. Don't greet again, don't add anything new, and NEVER repeat, read out, or mention this note — reply with ONLY the re-ask sentence.)"
+  },
+};
+function pack(){ return LANG_PACK[sessionLang] || LANG_PACK.english; }
 
 // ── boot / admin gate ────────────────────────────────────────────────────────
 let adminPw = '';
@@ -251,7 +297,18 @@ async function unlock(){
   if(await verifyPw(pw)){ adminPw=pw; localStorage.setItem('kpw', pw); openApp(); }
   else { $('lockerr').textContent='Wrong password. Try again.'; $('lockpw').select(); }
 }
-function openApp(){ $('lock').style.display='none'; init(); }
+function openApp(){ $('lock').style.display='none'; $('langpick').style.display='flex'; }
+document.querySelectorAll('.langbtn').forEach(b=>{ b.onclick=()=>chooseLang(b.dataset.lang); });
+function chooseLang(l){
+  sessionLang = LANG_PACK[l] ? l : 'english';
+  $('langpick').style.display='none';
+  const p = pack();
+  $('langmeta').textContent = p.label;
+  if($('greetBig'))  $('greetBig').textContent = p.big;
+  if($('greetHint')) $('greetHint').innerHTML  = p.hint;
+  if(recog){ try{ recog.lang = p.code; }catch(e){} }
+  init();
+}
 
 async function init(){
   try{
@@ -268,7 +325,7 @@ async function init(){
 let fillerBlobs=[];
 async function loadFillers(){
   try{
-    const fd=new FormData(); fd.append('password', adminPw);
+    const fd=new FormData(); fd.append('password', adminPw); fd.append('lang', sessionLang);
     const j = await (await fetch('/api/fillers',{method:'POST',body:fd})).json();
     fillerBlobs = (j.fillers||[]).map(f=>b64toBlob(f.b64, f.mime));
   }catch(e){}
@@ -281,7 +338,7 @@ function playFiller(){
 
 function renderCfg(){
   const c = CONFIG;
-  const sttTxt = c.stt === 'sarvam' ? 'Sarvam Saaras v3' : 'Browser (te-IN)';
+  const sttTxt = c.stt === 'sarvam' ? 'Sarvam Saaras v3' : 'Browser ('+pack().code+')';
   let voiceTxt;
   if(c.tts === 'elevenlabs') voiceTxt = 'ElevenLabs (eleven_v3)';
   else if(c.tts === 'sarvam') voiceTxt = 'Sarvam Bulbul';
@@ -295,7 +352,7 @@ function renderCfg(){
     `<span>Brain: <b class="${llmCls}">${brainTxt}${c.llm_ok?'':' — NO KEY'}</b></span>`+
     `<span>Ears: <b>${sttTxt}</b></span>`+
     `<span>Voice: <b>${voiceTxt}</b> ${extra}</span>`;
-  if(c.stt!=='sarvam') $('langmeta').textContent = 'Telugu (browser STT)';
+  if(c.stt!=='sarvam') $('langmeta').textContent = pack().label + ' · browser STT';
 }
 
 async function loadBookings(){
@@ -330,7 +387,7 @@ function bubble(text, role){
   const d=document.createElement('div');
   d.className='msg '+(role==='user'?'user':'bot');
   const who=document.createElement('span'); who.className='who';
-  who.textContent = role==='user' ? 'Customer' : 'Lakshmi · Krishnapatnam';
+  who.textContent = role==='user' ? 'Customer' : 'Olivia · Olive Bistro';
   d.appendChild(who);
   d.appendChild(document.createTextNode(text));
   $('convo').appendChild(d);
@@ -458,7 +515,7 @@ function connectWS(){
     }catch(e){ return reject(e); }
     ws.binaryType='arraybuffer';
     const to=setTimeout(()=>reject(new Error('ws timeout')), 3500);
-    ws.onopen=()=>{ clearTimeout(to); ws.send(JSON.stringify({type:'hello', password: adminPw})); resolve(); };
+    ws.onopen=()=>{ clearTimeout(to); ws.send(JSON.stringify({type:'hello', password: adminPw, lang: sessionLang})); resolve(); };
     ws.onerror=(e)=>{ clearTimeout(to); reject(e); };
     ws.onclose=()=>{ };
     ws.onmessage=onWsMessage;
@@ -492,20 +549,20 @@ async function handleNoReply(){
   if(!listening || endingCall) return;
   if(waitingForServer || playing || capturing){ armNoReply(); return; }   // busy/speaking — recheck
   if(noReplyCount===0){ triggerReask(); }
-  else { endingCall=true; await sayFixed(ENDING_LINE); endCall(); }
+  else { endingCall=true; await sayFixed(pack().ending); endCall(); }
 }
 // Contextual re-ask: hand the LLM a silent note so it repeats its last question in Telugu.
 function triggerReask(){
   if(!listening || endingCall) return;
   noReplyCount=1;                       // re-asked once; the next timeout ends the call
-  sendSilent(NO_REPLY_NOTE);
+  sendSilent(pack().reask);
 }
 // Send a turn the customer never sees (no transcript bubble) — used for the re-ask note.
 function sendSilent(note){
   clearNoReply();
   showTyping(); setPill('thinking'); waitingForServer=true;
   if(httpMode){ postTurn({text:note, silent:true}); }
-  else { wsSend({type:'turn_text', text:note, silent:true}); }
+  else { wsSend({type:'turn_text', text:note, silent:true, lang:sessionLang}); }
 }
 // Broken / unintelligible input (STT returned nothing usable): re-ask once, then end.
 function onBrokenInput(){
@@ -515,7 +572,7 @@ function onBrokenInput(){
   if(endingCall){ endCall(); return; }
   rearm();
   if(noReplyCount===0){ triggerReask(); }
-  else { endingCall=true; sayFixed(ENDING_LINE).then(endCall); }
+  else { endingCall=true; sayFixed(pack().ending).then(endCall); }
 }
 // Speak a fixed line via the TTS-only endpoint — no LLM call, so it never uses Gemini quota.
 async function sayFixed(text){
@@ -560,6 +617,7 @@ async function postTurn(opts){
   fd.append('orders', JSON.stringify(Object.values(knownOrders)));
   fd.append('bookings', JSON.stringify(Object.values(knownBookings)));
   fd.append('password', adminPw);
+  fd.append('lang', sessionLang);
   let d;
   try{ d=await (await fetch('/api/turn',{method:'POST',body:fd})).json(); }
   catch(e){ hideTyping(); bubble('⚠ network error','assistant'); waitingForServer=false; endOfStream(); return; }
@@ -797,15 +855,15 @@ function encodeWAV(samples, sr){
 let recogWarned=false;
 function startRecog(){
   const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ if(!recogWarned){ alert('This browser has no Telugu speech recognition. Please add a Sarvam key, or type to the agent.'); recogWarned=true;} return; }
+  if(!SR){ if(!recogWarned){ alert('This browser has no speech recognition. Please add a Sarvam key, or type to the agent.'); recogWarned=true;} return; }
   if(recog){ try{recog.start();}catch(e){} return; }
-  recog=new SR(); recog.lang='te-IN'; recog.continuous=false; recog.interimResults=false;
+  recog=new SR(); recog.lang=pack().code; recog.continuous=false; recog.interimResults=false;
   recog.onresult=e=>{
     const t=e.results[0][0].transcript;
     clearNoReply(); noReplyCount=0;
     playFiller();
     if(httpMode){ postTurn({text:t}); return; }
-    waitingForServer=true; setPill('transcribing'); wsSend({type:'turn_text',text:t});
+    waitingForServer=true; setPill('transcribing'); wsSend({type:'turn_text',text:t,lang:sessionLang});
   };
   recog.onend=()=>{ if(listening && !waitingForServer && !playing) { try{recog.start();}catch(e){} } };
   try{ recog.start(); }catch(e){}
