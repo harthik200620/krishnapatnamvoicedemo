@@ -54,8 +54,15 @@ def _load_eleven_keys() -> list[str]:
 _ELEVEN_KEYS = _load_eleven_keys()
 _eleven_key_idx = 0
 ELEVEN_KEY = _ELEVEN_KEYS[0] if _ELEVEN_KEYS else ""
-ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID")
+ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID")                        # English / Hindi (primary)
+ELEVEN_VOICE_TE = _clean("ELEVENLABS_VOICE_ID_TE") or ELEVEN_VOICE  # Telugu — own voice if set
 ELEVEN_MODEL = _clean("ELEVENLABS_MODEL_ID", "eleven_v3")
+
+
+def _voice_for(lang: str) -> str:
+    """eleven_v3 is multilingual, but a voice designed for a language sounds best in it — so
+    Telugu can use a dedicated voice while English/Hindi share the primary (designed) one."""
+    return ELEVEN_VOICE_TE if (lang or "").lower() == "telugu" else ELEVEN_VOICE
 
 SARVAM_KEY = _clean("SARVAM_API_KEY")
 SARVAM_TTS_MODEL = _clean("SARVAM_TTS_MODEL", "bulbul:v2")
@@ -122,12 +129,12 @@ async def probe_elevenlabs() -> None:
         _eleven_reason = f"probe failed ({type(e).__name__}: {e}) — falling back to Sarvam"
 
 
-async def _elevenlabs(text: str) -> tuple[bytes | None, str | None]:
+async def _elevenlabs(text: str, lang: str = "english") -> tuple[bytes | None, str | None]:
     """ElevenLabs TTS with key rotation. On quota/auth failure it advances to the next key;
     when every key is exhausted it flips _eleven_ok off so later turns skip the wasted call
     and go straight to Sarvam (no extra latency, and /config reports the truth)."""
     global _eleven_key_idx, _eleven_ok, _eleven_reason
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVEN_VOICE}"
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{_voice_for(lang)}"
     params = {"output_format": "mp3_44100_64"}  # 64kbps speech is transparent; halves transfer
     body = {
         "text": text,
@@ -182,7 +189,7 @@ async def _sarvam(text: str) -> tuple[bytes | None, str | None]:
     return base64.b64decode(audios[0]), "audio/wav"
 
 
-async def synthesize(text: str) -> tuple[bytes | None, str | None]:
+async def synthesize(text: str, lang: str = "english") -> tuple[bytes | None, str | None]:
     text = (text or "").strip()
     if not text or TTS_PROVIDER == "none":
         return None, None
@@ -194,7 +201,7 @@ async def synthesize(text: str) -> tuple[bytes | None, str | None]:
     # Preferred: ElevenLabs (if probe said it's usable)
     if TTS_PROVIDER == "elevenlabs" and _eleven_ok:
         try:
-            audio, mime = await _elevenlabs(text)
+            audio, mime = await _elevenlabs(text, lang)
             if audio:
                 return audio, mime
         except Exception:

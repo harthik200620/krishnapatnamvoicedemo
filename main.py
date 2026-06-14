@@ -112,14 +112,14 @@ async def api_fillers(password: str = Form(default=""), lang: str = Form(default
         await tts.probe_elevenlabs()
     lang = (lang or "english").lower()
     texts = _FILLER_TEXTS.get(lang, _FILLER_TEXTS["english"])
-    key = f"{tts.active_provider()}::{tts.ELEVEN_VOICE}::{lang}"
+    key = f"{tts.active_provider()}::{tts._voice_for(lang)}::{lang}"
     if key not in _filler_cache:
         # SEQUENTIAL on purpose: the ElevenLabs free tier allows only 2 concurrent requests,
         # and a parallel warm-up 429s. One-time cost at page load, so latency doesn't matter.
         out = []
         for t in texts:
             try:
-                a, m = await tts.synthesize(t)
+                a, m = await tts.synthesize(t, lang)
                 if a:
                     out.append({"b64": base64.b64encode(a).decode("ascii"), "mime": m})
             except Exception:
@@ -131,13 +131,14 @@ async def api_fillers(password: str = Form(default=""), lang: str = Form(default
 
 
 @app.post("/api/say")
-async def api_say(text: str = Form(default=""), password: str = Form(default="")):
+async def api_say(text: str = Form(default=""), password: str = Form(default=""),
+                  lang: str = Form(default="english")):
     """TTS-only — speak a fixed line without invoking the LLM (used for no-reply nudges)."""
     if password != ADMIN_PASSWORD:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
     audio_b64, mime = None, None
     try:
-        a, m = await tts.synthesize(text)
+        a, m = await tts.synthesize(text, lang)
         if a:
             audio_b64, mime = base64.b64encode(a).decode("ascii"), m
     except Exception:
@@ -270,7 +271,7 @@ async def api_turn(
     audio_b64, mime, rest_text = None, None, None
     if chunks:
         try:
-            a, m = await tts.synthesize(chunks[0])
+            a, m = await tts.synthesize(chunks[0], lang)
             if a:
                 audio_b64, mime = base64.b64encode(a).decode("ascii"), m
                 if len(chunks) > 1:
@@ -389,7 +390,7 @@ async def _process_text(ws: WebSocket, state: dict, text: str, silent: bool = Fa
     # tier (2-concurrent limit) from 429ing when fillers or /api/say overlap.
     for chunk in _split_for_tts(assistant_text):
         try:
-            audio, mime = await tts.synthesize(chunk)
+            audio, mime = await tts.synthesize(chunk, state.get("lang", "english"))
         except Exception:
             audio, mime = None, None
         if audio:

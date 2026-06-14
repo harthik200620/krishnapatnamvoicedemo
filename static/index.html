@@ -101,7 +101,8 @@
   .sens{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}
   .sens input{accent-color:var(--copper)}
   .typer{display:flex;gap:8px;margin-top:12px}
-  .typer input{flex:1;font-family:inherit;font-size:14px;padding:11px 14px;border-radius:11px;border:1px solid var(--line);background:var(--paper)}
+  .typer input{flex:1 1 auto;min-width:0;font-family:inherit;font-size:14px;padding:11px 14px;border-radius:11px;border:1px solid var(--line);background:var(--paper)}
+  .typer button{flex:0 0 auto}
   .typer input:focus{outline:2px solid var(--gold2);outline-offset:1px}
   .hint{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.5}
 
@@ -176,8 +177,6 @@
     </div>
     <div class="pill"><span class="dot" id="livedot"></span><span id="pilltext">Idle</span></div>
   </header>
-
-  <div class="cfgbar" id="cfgbar"></div>
 
   <div class="grid">
     <!-- Transcript -->
@@ -338,20 +337,6 @@ function playFiller(){
 
 function renderCfg(){
   const c = CONFIG;
-  const sttTxt = c.stt === 'sarvam' ? 'Sarvam Saaras v3' : 'Browser ('+pack().code+')';
-  let voiceTxt;
-  if(c.tts === 'elevenlabs') voiceTxt = 'ElevenLabs (eleven_v3)';
-  else if(c.tts === 'sarvam') voiceTxt = 'Sarvam Bulbul';
-  else voiceTxt = 'text only';
-  const llmCls = c.llm_ok ? '' : 'bad';
-  let extra = '';
-  if(c.tts !== 'elevenlabs' && c.voice_detail && c.voice_detail!=='ok')
-     extra = `<span class="bad">· ${c.voice_detail}</span>`;
-  const brainTxt = c.model ? c.model : 'Gemini 2.5 Flash';
-  $('cfgbar').innerHTML =
-    `<span>Brain: <b class="${llmCls}">${brainTxt}${c.llm_ok?'':' — NO KEY'}</b></span>`+
-    `<span>Ears: <b>${sttTxt}</b></span>`+
-    `<span>Voice: <b>${voiceTxt}</b> ${extra}</span>`;
   if(c.stt!=='sarvam') $('langmeta').textContent = pack().label + ' · browser STT';
 }
 
@@ -578,7 +563,7 @@ function onBrokenInput(){
 async function sayFixed(text){
   bubble(text, 'assistant');
   try{
-    const fd=new FormData(); fd.append('text', text); fd.append('password', adminPw);
+    const fd=new FormData(); fd.append('text', text); fd.append('password', adminPw); fd.append('lang', sessionLang);
     const j = await (await fetch('/api/say',{method:'POST',body:fd})).json();
     if(j && j.audio_b64){ await playAndWait(b64toBlob(j.audio_b64, j.audio_mime)); }
   }catch(e){}
@@ -642,7 +627,7 @@ async function postTurn(opts){
 // /api/say in parallel with playback so the whole reply isn't waited on before speaking.
 async function sayRest(text){
   try{
-    const fd=new FormData(); fd.append('text', text); fd.append('password', adminPw);
+    const fd=new FormData(); fd.append('text', text); fd.append('password', adminPw); fd.append('lang', sessionLang);
     const j = await (await fetch('/api/say',{method:'POST',body:fd})).json();
     if(j && j.audio_b64){ playAudio(b64toBlob(j.audio_b64, j.audio_mime)); }
   }catch(e){}
