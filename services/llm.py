@@ -26,16 +26,15 @@ def _clean(name: str, default: str = "") -> str:
 
 def _load_keys() -> list[str]:
     """Gather Gemini API keys for rotation: a comma-separated GEMINI_API_KEYS, plus the
-    numbered GEMINI_API_KEY / GEMINI_API_KEY_2.. vars. Deduped, empties dropped."""
+    numbered GEMINI_API_KEY / GEMINI_API_KEY_2 … GEMINI_API_KEY_30 vars (add more keys by
+    just adding env vars — no code change). Deduped, empties dropped."""
     raw = []
     combo = _clean("GEMINI_API_KEYS")
     if combo:
         raw += [p.strip() for p in combo.split(",")]
-    for name in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3",
-                 "GEMINI_API_KEY_4", "GEMINI_API_KEY_5", "GEMINI_API_KEY_6",
-                 "GEMINI_API_KEY_7", "GEMINI_API_KEY_8", "GEMINI_API_KEY_9",
-                 "GEMINI_API_KEY_10", "GEMINI_API_KEY_11", "GEMINI_API_KEY_12"):
-        raw.append(_clean(name))
+    raw.append(_clean("GEMINI_API_KEY"))
+    for n in range(2, 31):
+        raw.append(_clean(f"GEMINI_API_KEY_{n}"))
     out, seen = [], set()
     for k in raw:
         if k and k not in seen:

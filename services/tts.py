@@ -54,15 +54,21 @@ def _load_eleven_keys() -> list[str]:
 _ELEVEN_KEYS = _load_eleven_keys()
 _eleven_key_idx = 0
 ELEVEN_KEY = _ELEVEN_KEYS[0] if _ELEVEN_KEYS else ""
-ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID")                        # English / Hindi (primary)
+ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID")                        # English (primary)
+ELEVEN_VOICE_HI = _clean("ELEVENLABS_VOICE_ID_HI") or ELEVEN_VOICE  # Hindi — own voice if set
 ELEVEN_VOICE_TE = _clean("ELEVENLABS_VOICE_ID_TE") or ELEVEN_VOICE  # Telugu — own voice if set
 ELEVEN_MODEL = _clean("ELEVENLABS_MODEL_ID", "eleven_v3")
 
 
 def _voice_for(lang: str) -> str:
-    """eleven_v3 is multilingual, but a voice designed for a language sounds best in it — so
-    Telugu can use a dedicated voice while English/Hindi share the primary (designed) one."""
-    return ELEVEN_VOICE_TE if (lang or "").lower() == "telugu" else ELEVEN_VOICE
+    """eleven_v3 is multilingual, but a voice designed for a language sounds best in it —
+    each language can have its own voice; unset ones fall back to the primary."""
+    l = (lang or "").lower()
+    if l == "telugu":
+        return ELEVEN_VOICE_TE
+    if l == "hindi":
+        return ELEVEN_VOICE_HI
+    return ELEVEN_VOICE
 
 SARVAM_KEY = _clean("SARVAM_API_KEY")
 SARVAM_TTS_MODEL = _clean("SARVAM_TTS_MODEL", "bulbul:v2")
@@ -166,6 +172,11 @@ async def _elevenlabs(text: str, lang: str = "english") -> tuple[bytes | None, s
     if quota_fail:
         _eleven_ok = False
         _eleven_reason = "ElevenLabs credits exhausted (all keys) — speaking with Sarvam fallback"
+    elif resp.status_code in (402, 404):
+        # voice_not_found / paid_plan_required — this voice can never work on this key, so
+        # disable after ONE failed try instead of paying the dead round-trip on every turn.
+        _eleven_ok = False
+        _eleven_reason = f"ElevenLabs voice unusable ({resp.status_code}) — speaking with Sarvam fallback"
     raise RuntimeError(f"ElevenLabs failed: {last_detail}")
 
 
