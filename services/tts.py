@@ -145,10 +145,12 @@ async def _elevenlabs(text: str, lang: str = "english") -> tuple[bytes | None, s
     body = {
         "text": text,
         "model_id": ELEVEN_MODEL,
+        # Calm, steady delivery: higher stability + low style = unhurried and even,
+        # never theatrical. (Pace itself comes from the voice design + the "…" pauses.)
         "voice_settings": {
-            "stability": 0.4,
+            "stability": 0.5,
             "similarity_boost": 0.8,
-            "style": 0.5,
+            "style": 0.3,
             "use_speaker_boost": True,
         },
     }
