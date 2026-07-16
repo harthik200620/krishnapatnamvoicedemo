@@ -81,8 +81,8 @@ LANG_NAME = {"english": "English", "hindi": "Hindi", "telugu": "Telugu"}
 OPENERS = {
     "lead": {
         "english": "Hello! I'm Riya, calling from Verba. You were enquiring about an apartment in Hyderabad, right?",
-        "hindi": "नमस्ते! मैं रिया बोल रही हूँ, Verba से। आपने हैदराबाद में apartment के बारे में enquiry की थी ना?",
-        "telugu": "నమస్తే! నేను రియా, Verba నుండి మాట్లాడుతున్నాను. మీరు హైదరాబాద్ లో apartment గురించి enquiry చేశారు కదా?",
+        "hindi": "नमस्ते! मैं रिया बोल रही हूँ, वर्बा से। आपने हैदराबाद में अपार्टमेंट के बारे में पूछताछ की थी ना?",
+        "telugu": "నమస్తే! నేను రియా, వర్బా నుండి మాట్లాడుతున్నాను. మీరు హైదరాబాద్ లో అపార్ట్‌మెంట్ గురించి ఎంక్వైరీ చేశారు కదా?",
     },
     "collections": {
         "english": "Hello! This is Priya, calling from Suvidha Finserv. Am I speaking with Mr. Rahul Sharma?",
@@ -91,8 +91,8 @@ OPENERS = {
     },
     "clinic": {
         "english": "Hello! Ananya Dental and Skin Clinic, this is Ananya — how can I help you?",
-        "hindi": "नमस्ते! Ananya Dental and Skin Clinic, मैं अनन्या बोल रही हूँ — बताइए?",
-        "telugu": "నమస్తే! Ananya Dental and Skin Clinic, నేను అనన్య — చెప్పండి?",
+        "hindi": "नमस्ते! अनन्या डेंटल एंड स्किन क्लिनिक, मैं अनन्या बोल रही हूँ — बताइए?",
+        "telugu": "నమస్తే! అనన్య డెంటల్ అండ్ స్కిన్ క్లినిక్, నేను అనన్య — చెప్పండి?",
     },
 }
 
@@ -122,20 +122,26 @@ _NUM_GUIDE = {
         "'₹' symbol or bare digits of an amount."
     ),
     "hindi": (
-        "Reply in natural spoken Hindi (Devanagari script), everyday style — common English "
-        "words like 'payment', 'link', 'WhatsApp', 'EMI', 'number' are fine, but the sentence "
-        "stays Hindi. Amounts in Hindi words + 'रुपये' (₹8,450 → 'आठ हज़ार चार सौ पचास रुपये'). "
+        "Reply in natural spoken Hindi, everyday Hyderabad style. WRITE EVERY WORD IN "
+        "DEVANAGARI SCRIPT — including English loanwords, which you must transliterate into "
+        "Devanagari so the voice speaks them naturally: payment→पेमेंट, link→लिंक, "
+        "WhatsApp→व्हाट्सऐप, EMI→ई-एम-आई, number→नंबर, apartment→अपार्टमेंट, budget→बजट, "
+        "appointment→अपॉइंटमेंट, confirm→कन्फर्म, option→ऑप्शन, team→टीम. "
+        "NEVER output a single word in Latin/English letters — Latin text is mispronounced by "
+        "the voice. Amounts in Hindi words + 'रुपये' (₹8,450 → 'आठ हज़ार चार सौ पचास रुपये'). "
         "Dates like 'पंद्रह जुलाई'. Phone numbers digit by digit. Always respectful ('जी', 'आप'). "
-        "Write PLACE NAMES and Indian proper nouns in Devanagari (हैदराबाद, कोंडापुर, कूकटपल्ली) — "
-        "never Latin script, so they are pronounced natively."
+        "PLACE NAMES and Indian proper nouns in Devanagari too (हैदराबाद, कोंडापुर, कूकटपल्ली)."
     ),
     "telugu": (
-        "Reply in natural Telugu (Telugu script), Hyderabad style — common English words "
-        "(appointment, slot, payment, WhatsApp, number) are fine, but the sentence stays "
-        "Telugu. Amounts in Telugu words + 'రూపాయలు' (₹8,450 → 'ఎనిమిది వేల నాలుగు వందల యాభై "
-        "రూపాయలు'). Use 'అండి / గారు'. Phone numbers digit by digit. Write PLACE NAMES and "
-        "Indian proper nouns in Telugu script (హైదరాబాద్, కొండాపూర్, కూకట్‌పల్లి) — never Latin "
-        "script, so they are pronounced natively."
+        "Reply in natural Telugu, Hyderabad style. WRITE EVERY WORD IN TELUGU SCRIPT — "
+        "including English loanwords, which you must transliterate into Telugu script so the "
+        "voice speaks them naturally: appointment→అపాయింట్‌మెంట్, slot→స్లాట్, payment→పేమెంట్, "
+        "WhatsApp→వాట్సాప్, number→నంబర్, link→లింక్, budget→బడ్జెట్, confirm→కన్ఫర్మ్, "
+        "option→ఆప్షన్, team→టీమ్. NEVER output a single word in Latin/English letters — Latin "
+        "text is mispronounced by the voice. Amounts in Telugu words + 'రూపాయలు' (₹8,450 → "
+        "'ఎనిమిది వేల నాలుగు వందల యాభై రూపాయలు'). Use 'అండి / గారు'. Phone numbers digit by "
+        "digit. PLACE NAMES and Indian proper nouns in Telugu script too (హైదరాబాద్, కొండాపూర్, "
+        "కూకట్‌పల్లి)."
     ),
 }
 
@@ -145,7 +151,16 @@ English, Hindi, Telugu and any mix. The ONLY exception: if the {who} clearly swi
 another language and keeps speaking it, switch with them and continue in that language.
 
 #2 RULE — BREVITY. MAXIMUM one short sentence, about 15 words. Never explain, never list,
-never repeat the {who}'s words, never stack two questions. A long reply is a failure."""
+never repeat the {who}'s words, never stack two questions. A long reply is a failure.
+
+#3 RULE — DELIVERY. Your reply is read aloud verbatim, so write ONLY the words meant to be
+heard: no stage directions, no emojis, no asterisks, no [bracketed] tags, no markdown. Keep
+the tone warm, clear and unhurried — a sweet, professional human voice.
+
+#4 RULE — CLOSING. When you've handled what the {who} needs and nothing is pending, ask ONCE,
+warmly, whether there's anything else before finishing; if they decline, give ONE short,
+courteous goodbye and stop. (Still record the call in the CRM exactly as your flow requires —
+the goodbye never replaces the tool call.)"""
 
 
 def _prompt_lead(today_str: str, lang: str) -> str:

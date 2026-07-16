@@ -12,6 +12,7 @@ synthesize(text) -> (audio_bytes | None, mime | None)
 from __future__ import annotations
 
 import os
+import re
 import base64
 import httpx
 
@@ -75,6 +76,48 @@ def _voice_for(lang: str) -> str:
     if l == "hindi":
         return ELEVEN_VOICE_HI
     return ELEVEN_VOICE
+
+
+# 128 kbps mp3 keeps consonants crisp (clarity on phone-grade audio) for a tiny transfer cost
+# over 64 kbps. Override with ELEVENLABS_OUTPUT_FORMAT if a plan needs a different format.
+_OUTPUT_FORMAT = _clean("ELEVENLABS_OUTPUT_FORMAT", "mp3_44100_128")
+
+
+def _voice_settings_for(lang: str) -> dict:
+    """Tuned for a CLEAR, WARM, PROFESSIONAL read — not theatrical.
+      • high similarity_boost  → keeps the chosen voice's own timbre (sweet, recognisable)
+      • low style              → removes exaggerated emphasis / accent swings ("too much
+                                 prosody" that makes it hard to follow)
+      • stability              → steady on multilingual_v2 (EN/HI); eleven_v3 (Telugu) reads
+                                 most naturally at 0.5 — pushing it higher there goes flat.
+      • use_speaker_boost      → lifts intelligibility.
+    Every knob is env-overridable (ELEVENLABS_STABILITY / _SIMILARITY / _STYLE) for quick
+    A/B tuning once you hear a call, no code change needed."""
+    is_v3 = _model_for(lang) == ELEVEN_MODEL         # eleven_v3 path (Telugu)
+    default_stability = "0.5" if is_v3 else "0.6"
+    return {
+        "stability": _float_env("ELEVENLABS_STABILITY", default_stability),
+        "similarity_boost": _float_env("ELEVENLABS_SIMILARITY", "0.85"),
+        "style": _float_env("ELEVENLABS_STYLE", "0.1"),
+        "use_speaker_boost": True,
+    }
+
+
+def _float_env(name: str, default: str) -> float:
+    try:
+        return float(_clean(name, default))
+    except ValueError:
+        return float(default)
+
+
+# eleven_v3 treats [bracketed] text as performance directions (e.g. [laughs], [whispers]) and
+# does NOT read it aloud — strip any such tags so the voice speaks EXACTLY the reply, nothing
+# more or less. The short cap avoids touching genuine bracketed content.
+_AUDIO_TAG = re.compile(r"\[[^\]\n]{0,30}\]")
+
+
+def _strip_audio_tags(text: str) -> str:
+    return _AUDIO_TAG.sub("", text).strip()
 
 SARVAM_KEY = _clean("SARVAM_API_KEY")
 SARVAM_TTS_MODEL = _clean("SARVAM_TTS_MODEL", "bulbul:v2")
@@ -147,18 +190,12 @@ async def _elevenlabs(text: str, lang: str = "english") -> tuple[bytes | None, s
     and go straight to Sarvam (no extra latency, and /config reports the truth)."""
     global _eleven_key_idx, _eleven_ok, _eleven_reason
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{_voice_for(lang)}"
-    params = {"output_format": "mp3_44100_64"}  # 64kbps speech is transparent; halves transfer
+    params = {"output_format": _OUTPUT_FORMAT}  # crisp, clear consonants
     body = {
         "text": text,
         "model_id": _model_for(lang),
-        # Calm, steady delivery: higher stability + low style = unhurried and even,
-        # never theatrical. (Pace itself comes from the voice design + the "…" pauses.)
-        "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.8,
-            "style": 0.3,
-            "use_speaker_boost": True,
-        },
+        # Clear, warm, professional delivery — see _voice_settings_for().
+        "voice_settings": _voice_settings_for(lang),
     }
     last_detail, quota_fail = "", False
     for _ in range(max(1, len(_ELEVEN_KEYS))):
@@ -212,7 +249,7 @@ async def _sarvam(text: str, lang: str = "english") -> tuple[bytes | None, str |
 
 
 async def synthesize(text: str, lang: str = "english") -> tuple[bytes | None, str | None]:
-    text = (text or "").strip()
+    text = _strip_audio_tags((text or "").strip())   # speak exactly the reply, no stray tags
     if not text or TTS_PROVIDER == "none":
         return None, None
 
