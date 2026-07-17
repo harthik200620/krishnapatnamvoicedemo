@@ -66,9 +66,14 @@ def _int_env(name: str, default: int) -> int:
 
 
 _THINKING_BUDGET = max(0, _int_env("GEMINI_THINKING_BUDGET", 512))
+# Thinking pays off on a CAPABLE model; on a -lite model it mostly just adds latency for little
+# gain. So thinking is OFF whenever the (possibly env-pinned) model is a -lite id — that keeps
+# the current deploy snappy — and ON once you move to gemini-flash-latest. This is why Telugu
+# felt slow: thinking was running on flash-lite.
+_EFFECTIVE_THINKING = 0 if "lite" in GEMINI_MODEL.lower() else _THINKING_BUDGET
 # When thinking is on, the visible answer shares the token pool with the thinking, so give it
 # generous headroom (the prompt still keeps the spoken reply to one short sentence).
-_MAX_OUTPUT_TOKENS = max(1024, _THINKING_BUDGET + 512) if _THINKING_BUDGET > 0 else 220
+_MAX_OUTPUT_TOKENS = max(1024, _EFFECTIVE_THINKING + 512) if _EFFECTIVE_THINKING > 0 else 220
 
 # Fields each tool needs before it may fire; the server enforces this even if the model rushes.
 _REQUIRED_BY_TOOL = {
@@ -328,8 +333,8 @@ async def _generate(contents: list, scenario: str = "lead", lang: str = "") -> d
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": _MAX_OUTPUT_TOKENS},
     }
     if "2.5" in GEMINI_MODEL or GEMINI_MODEL.endswith("-latest"):
-        # Think a little before answering → considered, human replies instead of snap ones.
-        body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": _THINKING_BUDGET}
+        # Think before answering ONLY on capable models (off on -lite to stay fast).
+        body["generationConfig"]["thinkingConfig"] = {"thinkingBudget": _EFFECTIVE_THINKING}
     url = _URL.format(model=GEMINI_MODEL)
     last_err = None
     client = _http.client()  # shared keep-alive client (no per-call TLS handshake)

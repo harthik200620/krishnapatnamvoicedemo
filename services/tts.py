@@ -245,12 +245,15 @@ async def _elevenlabs(text: str, lang: str = "english") -> tuple[bytes | None, s
     if quota_fail:
         _eleven_ok = False
         _eleven_reason = "ElevenLabs credits exhausted (all keys) — speaking with Sarvam fallback"
-    elif resp.status_code in (402, 404):
-        # voice_not_found / paid_plan_required — this voice can never work on this key, so
-        # disable after ONE failed try instead of paying the dead round-trip on every turn.
+    elif resp.status_code == 402:
+        # paid_plan_required — account-wide, so disable ElevenLabs entirely.
         _eleven_ok = False
-        _eleven_reason = f"ElevenLabs voice unusable ({resp.status_code}) — speaking with Sarvam fallback"
-    raise RuntimeError(f"ElevenLabs failed: {last_detail}")
+        _eleven_reason = "ElevenLabs paid plan required — speaking with Sarvam fallback"
+    # NOTE: a 404 is voice_not_found — specific to THIS voice/account (e.g. an English voice
+    # that isn't in the key's account). We deliberately do NOT flip _eleven_ok off for it, so a
+    # bad voice in one language can't disable ElevenLabs for the others (e.g. Hindi keeps
+    # working). This call just falls back to Sarvam.
+    raise RuntimeError(f"ElevenLabs failed ({resp.status_code}): {last_detail}")
 
 
 _SARVAM_LANG = {"english": "en-IN", "hindi": "hi-IN", "telugu": "te-IN"}
