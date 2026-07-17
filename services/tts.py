@@ -55,11 +55,13 @@ def _load_eleven_keys() -> list[str]:
 _ELEVEN_KEYS = _load_eleven_keys()
 _eleven_key_idx = 0
 ELEVEN_KEY = _ELEVEN_KEYS[0] if _ELEVEN_KEYS else ""
-# English voice: PINNED here to the dedicated Indian-English voice, so the change applies on
-# deploy without editing any hosting env var (an env value would otherwise override it).
-# This is a PREMADE ElevenLabs voice, so it works on ANY account's API key (old or new) — no
-# account/key match needed. Override later via ELEVENLABS_VOICE_ID_EN if ever needed.
-ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID_EN") or "oO7sLA3dWfQXsKeSAjpA"   # English (Indian English)
+# English voice. NOTE: the originally-chosen voice oO7sLA3dWfQXsKeSAjpA is a community
+# Voice-LIBRARY voice, which ElevenLabs BLOCKS on FREE accounts (402 payment_required) — so it
+# cannot play until the account is on a paid plan. As a working FREE voice we pin
+# FBXIexttoePwOX9wMMee, which IS usable on this account's free plan (verified 200 via API).
+# → After upgrading to a paid ElevenLabs plan, set env ELEVENLABS_VOICE_ID_EN=oO7sLA3dWfQXsKeSAjpA
+#   to switch English back to the chosen Indian-English voice (no code change needed).
+ELEVEN_VOICE = _clean("ELEVENLABS_VOICE_ID_EN") or "FBXIexttoePwOX9wMMee"   # English (free-usable)
 # Hindi / Telugu are UNCHANGED: their own voice if set, otherwise the account's existing
 # ELEVENLABS_VOICE_ID — i.e. exactly the voice they use today. So Hindi is not affected.
 _ENV_PRIMARY_VOICE = _clean("ELEVENLABS_VOICE_ID")
