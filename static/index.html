@@ -126,10 +126,11 @@
   .scn .tx b{display:block;font-family:'Fraunces',serif;font-size:15px;color:var(--green-deep)}
   .scn .tx small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:2px;font-weight:400}
   .scn .chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
-  .scn .chip{flex:0 0 auto;font-size:11px;font-weight:600;background:var(--paper2);color:var(--muted);
-    border:1px solid transparent;border-radius:999px;padding:4px 11px;transition:border-color .12s,color .12s}
-  .scn .chip:hover{border-color:var(--copper);color:var(--copper-deep);background:#fff}
-  .scn .chip.on{color:var(--copper-deep);border-color:var(--copper);background:#fff}
+  .scn .chip{flex:0 0 auto;font-size:12px;font-weight:600;background:#fff;color:var(--copper-deep);
+    border:1px solid var(--copper);border-radius:999px;padding:5px 13px;cursor:pointer;
+    transition:border-color .12s,color .12s,background .12s}
+  .scn .chip:hover{background:var(--copper);color:#fff}
+  .scn .chip.on{color:#fff;border-color:var(--copper);background:var(--copper)}
   .scnlinks{margin-top:16px;font-size:12px;color:var(--muted)}
   .scnlinks a{color:var(--copper-deep);font-weight:600;text-decoration:none}
   .scnlinks a:hover{text-decoration:underline}

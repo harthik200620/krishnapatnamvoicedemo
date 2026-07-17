@@ -58,12 +58,12 @@ async def crm_page():
 
 
 @app.get("/debug/tts")
-async def debug_tts(lang: str = "english"):
-    """TEMPORARY diagnostic: try a real ElevenLabs synth for a language's voice with a few
-    models and report the raw status/error — reveals WHY a voice falls back to Sarvam
-    (404 = voice not in this key's account, 401 = bad key, 4xx = model incompatible, etc.).
-    Reveals only the voice id and a 6-char key prefix, never the full key."""
-    voice = tts._voice_for(lang)
+async def debug_tts(lang: str = "english", voice: str = ""):
+    """TEMPORARY diagnostic: try a real ElevenLabs synth for a language's voice (or an explicit
+    ?voice=ID) with a few models and report the raw status/error — reveals WHY a voice falls
+    back to Sarvam (404 = voice not in this key's account, 402 = free-plan library voice,
+    401 = bad key, etc.). Reveals only the voice id and a 6-char key prefix, never the full key."""
+    voice = voice.strip() or tts._voice_for(lang)
     key = tts._ELEVEN_KEYS[0] if tts._ELEVEN_KEYS else tts.ELEVEN_KEY
     out = {"lang": lang, "voice": voice, "key_prefix": (key[:6] + "…") if key else "NONE",
            "keys_count": len(tts._ELEVEN_KEYS), "attempts": []}
