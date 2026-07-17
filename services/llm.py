@@ -46,13 +46,20 @@ def _load_keys() -> list[str]:
 _KEYS = _load_keys()
 _key_idx = 0   # round-robins one step per request (spreads load) + advances on quota/invalid
 
-# Sanitize the model: fall back to a known-good id if the env value is empty or garbled.
-# Default is "gemini-flash-latest" (NOT the -lite tier): far more capable — thinks better,
-# handles tricky/emotional replies maturely, sounds human instead of a reflexive bot. It's a
-# rolling alias, so it stays valid across all 12 mixed-age keys (pinned ids get retired for
-# newer accounts). Set GEMINI_MODEL to override.
+# Model choice. We want the BEST Flash model and NEVER the -lite tier (lite is the weak,
+# bot-like one). So:
+#   • empty / garbled env      → gemini-flash-latest
+#   • a -lite id in the env    → OVERRIDDEN to gemini-flash-latest (so a lite value pinned in the
+#                                hosting env can't force the weak model — no env edit needed)
+#   • an explicit non-lite id  → honoured
+# "-latest" is a rolling alias to the newest stable Flash, valid across all mixed-age keys
+# (pinned ids get retired for newer accounts). Force a specific model with a non-lite GEMINI_MODEL.
+_BEST_MODEL = "gemini-flash-latest"
 _raw_model = _clean("GEMINI_MODEL")
-GEMINI_MODEL = _raw_model if re.fullmatch(r"gemini-[A-Za-z0-9.\-]+", _raw_model) else "gemini-flash-latest"
+if re.fullmatch(r"gemini-[A-Za-z0-9.\-]+", _raw_model) and "lite" not in _raw_model.lower():
+    GEMINI_MODEL = _raw_model
+else:
+    GEMINI_MODEL = _BEST_MODEL
 _URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # Let the model THINK briefly before it answers — this is what turns a reflexive, bot-like
