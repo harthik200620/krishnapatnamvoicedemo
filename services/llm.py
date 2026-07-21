@@ -162,6 +162,12 @@ def _fallback_for(tool: str | None, args: dict | None, lang: str = "english") ->
     if tool == "qualify_lead":
         status = str(a.get("status") or "").strip().lower()
         area = str(a.get("area") or "").strip()
+        if "no response" in str(a.get("notes") or "").lower():
+            if lang == "hindi":
+                return "लगता है आवाज़ नहीं आ रही जी — मैं रिया, वर्बा से। आपकी एंक्वायरी पर फिर कॉल करूँगी। धन्यवाद!"
+            if lang == "telugu":
+                return "మీ మాట వినపడటం లేదు అండి — నేను రియా, వర్బా నుండి. మీ ఎంక్వైరీ గురించి మళ్ళీ కాల్ చేస్తాను. ధన్యవాదాలు!"
+            return "Seems I can't hear you — this is Riya from Verba; I'll call you again shortly. Thank you!"
         if status == "not_interested":
             if lang == "hindi":
                 return "कोई बात नहीं जी, आपके समय के लिए धन्यवाद — मन बदले तो हम एक कॉल दूर हैं।"
@@ -193,6 +199,19 @@ def _fallback_for(tool: str | None, args: dict | None, lang: str = "english") ->
         ptp = str(a.get("ptp_date") or "").strip()
         # Speak "24 जुलाई", never the raw ISO "2026-07-24" (the voice would read the dashes).
         ptp = _humanize_when(ptp, "", lang) or ptp
+        # Fully-silent call → leave a complete voicemail: who called, amount, due date, link.
+        if "no response" in str(a.get("notes") or "").lower():
+            cc = COLLECTION_CASE
+            if lang == "hindi":
+                return (f"{cc['customer_hi']} जी, शायद आवाज़ नहीं आ रही — मैं प्रिया, {cc['company']} से। "
+                        f"इस महीने की ई-एम-आई {cc['amount_hi']}, {cc['due_date_hi']} तक है — लिंक "
+                        "व्हाट्सऐप पर भेज दिया है। धन्यवाद!")
+            if lang == "telugu":
+                return (f"{cc['customer']} గారు, మీ మాట వినపడటం లేదు — నేను ప్రియ, {cc['company']} "
+                        f"నుండి. ఈ నెల ఈ-ఎం-ఐ {cc['due_date']} లోపు కట్టాలి — లింక్ వాట్సాప్ లో "
+                        "పంపించాను. ధన్యవాదాలు!")
+            return (f"Mr. {cc['customer']}, I couldn't hear you — this is Priya from {cc['company']}. "
+                    f"Your EMI is due {cc['due_date']}; the payment link is on WhatsApp. Thank you!")
         if lang == "hindi":
             if outcome == "promise_to_pay":
                 dt = f" {ptp} को" if ptp else ""
