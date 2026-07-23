@@ -10,32 +10,49 @@
 <style>
   :root{
     --paper:#F5F6FC; --paper2:#EAECF8; --card:#FFFFFF;
-    --accent:#5A5FE0; --accent-deep:#3D42C7;
+    --accent:#5A5FE0; --accent-deep:#3D42C7; --accent-soft:#8388F2;
     --deep:#23265F; --ink:#212342; --muted:#6D7194; --line:#DEE1F2;
     --ok:#22A06B; --amber:#E8A33D; --alert:#D9544A; --gold:#E8B44C;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --shadow-sm:0 1px 2px rgba(26,29,78,.04), 0 1px 1px rgba(26,29,78,.03);
+    --shadow-md:0 10px 26px rgba(26,29,78,.07), 0 2px 6px rgba(26,29,78,.04);
+    --shadow-lg:0 22px 54px rgba(20,22,70,.16), 0 6px 16px rgba(20,22,70,.06);
   }
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%}
   body{background:var(--paper);color:var(--ink);
-    font-family:'Poppins','Noto Sans Devanagari','Noto Sans Telugu',system-ui,sans-serif}
+    font-family:'Poppins','Noto Sans Devanagari','Noto Sans Telugu',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background-image:radial-gradient(650px 420px at 14% -6%, rgba(90,95,224,.06), transparent 60%);
+    background-attachment:fixed}
+  ::selection{background:var(--accent);color:#fff}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px;border:2px solid var(--paper)}
+  a:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
   .wrap{max-width:980px;margin:0 auto;padding:22px 20px 60px}
   header{display:flex;align-items:center;gap:14px;padding:8px 4px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .brand h1{font-family:'Fraunces',serif;font-weight:700;font-size:26px;margin:0;color:var(--deep)}
+  .brand h1{font-family:'Fraunces',serif;font-weight:700;font-size:26px;margin:0;color:var(--deep);letter-spacing:-.01em}
   .brand .sub{font-size:12px;color:var(--muted);margin-top:3px}
   .live{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
-    border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--deep)}
-  .live .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);
-    box-shadow:0 0 0 0 rgba(34,160,107,.5);animation:pulse 1.6s infinite}
+    border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--deep);box-shadow:var(--shadow-sm)}
+  .live .dot{position:relative;width:10px;height:10px;border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, #79E8B4, var(--ok) 62%, #146a43 100%);
+    box-shadow:0 0 0 0 rgba(34,160,107,.5);animation:pulse 1.6s var(--ease) infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,160,107,.45)}70%{box-shadow:0 0 0 9px rgba(34,160,107,0)}100%{box-shadow:0 0 0 0 rgba(34,160,107,0)}}
   .filters{display:flex;gap:8px;margin:16px 0 14px;flex-wrap:wrap}
   .fchip{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:999px;
-    padding:7px 14px;background:var(--card);color:var(--muted);cursor:pointer}
-  .fchip.on{background:var(--accent);border-color:var(--accent-deep);color:#fff}
+    padding:7px 14px;background:var(--card);color:var(--muted);cursor:pointer;
+    transition:transform .14s var(--ease),background .14s var(--ease),color .14s var(--ease),border-color .14s var(--ease),box-shadow .14s var(--ease)}
+  .fchip:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm);border-color:var(--accent)}
+  .fchip.on{background:var(--accent);border-color:var(--accent-deep);color:#fff;box-shadow:var(--shadow-sm)}
   .list{display:flex;flex-direction:column;gap:11px}
   .rec{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
-    border-radius:14px;padding:14px 16px;animation:rise .3s ease}
-  .rec.flash{animation:flash 1.6s ease}
-  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    border-radius:14px;padding:14px 16px;animation:rise .32s var(--ease);
+    transition:box-shadow .2s var(--ease),transform .2s var(--ease)}
+  .rec:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+  .rec.flash{animation:flash 1.6s var(--ease)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
   @keyframes flash{0%{background:#FFF7E0}100%{background:var(--card)}}
   .rec.col{border-left-color:var(--amber)}
   .rec.apt{border-left-color:var(--ok)}
@@ -53,20 +70,31 @@
   .rec .meta b{color:var(--accent-deep);font-weight:600}
   .emptybox{margin:60px auto;text-align:center;color:var(--muted);font-size:14px;line-height:1.7;max-width:420px}
   .emptybox .big{font-family:'Fraunces',serif;font-size:20px;color:var(--deep);margin-bottom:6px}
+  .emptybox .orb{position:relative;width:52px;height:52px;margin:0 auto 16px;border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, #9EA1FF, var(--accent) 55%, var(--deep) 100%);
+    box-shadow:0 12px 28px rgba(90,95,224,.3), inset 0 -5px 10px rgba(0,0,0,.15), inset 0 3px 6px rgba(255,255,255,.4);
+    animation:heroBreathe 4.4s var(--ease) infinite}
+  @keyframes heroBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
   /* lock */
   .lock{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;background:var(--paper)}
-  .lockcard{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 44px rgba(25,28,90,.14);
+  .lockcard{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);
     padding:34px 30px;max-width:360px;width:100%;text-align:center}
   .lockcard h2{font-family:'Fraunces',serif;color:var(--deep);margin:14px 0 2px;font-size:21px}
   .lockcard .tag{color:var(--accent-deep);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
   .lockcard p{color:var(--muted);font-size:13px;margin:6px 0 18px}
-  .lockcard input{width:100%;font-family:inherit;font-size:15px;padding:12px 14px;border-radius:11px;border:1px solid var(--line);background:var(--paper);text-align:center}
-  .lockcard input:focus{outline:2px solid var(--gold);outline-offset:1px}
-  .lockcard button{width:100%;margin-top:12px;background:var(--accent);color:#fff;border:1px solid var(--accent-deep);
-    border-radius:11px;padding:12px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
+  .lockcard input{width:100%;font-family:inherit;font-size:15px;padding:12px 14px;border-radius:11px;border:1px solid var(--line);background:var(--paper);text-align:center;
+    transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
+  .lockcard input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(90,95,224,.15)}
+  .lockcard button{width:100%;margin-top:12px;background:linear-gradient(155deg,var(--accent-soft),var(--accent));color:#fff;border:1px solid var(--accent-deep);
+    border-radius:11px;padding:12px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:transform .12s var(--ease),box-shadow .2s var(--ease)}
+  .lockcard button:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
   .lockerr{color:var(--alert);font-size:12px;margin-top:10px;min-height:16px}
   a.back{font-size:12px;color:var(--accent-deep);font-weight:600;text-decoration:none;margin-left:14px}
   a.back:hover{text-decoration:underline}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  }
 </style>
 </head>
 <body>
@@ -93,6 +121,7 @@
 
   <div class="list" id="list">
     <div class="emptybox" id="empty">
+      <div class="orb" aria-hidden="true"></div>
       <div class="big">Waiting for the first record…</div>
       Run any of the three agents — the moment a call or chat ends in an outcome,
       it appears here by itself. That's the write-back.
